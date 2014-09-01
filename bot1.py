@@ -50,13 +50,15 @@ def find_links(url, soup):
             link_dict.update({url:  []})
 
 class getterThread(threading.Thread):
-    def __init__(self, threadID, url, threadname=None, proxy=None):
+    def __init__(self, threadID, url, threadname=None, proxies=[]):
         threading.Thread.__init__(self)
         self.threadID = threadID
         self.url = url
         self.runcount = 0
-        if proxy:
-            self.proxy = proxy
+        if(len(proxies) > 0):
+            self.proxies = proxies
+		else:
+			self.proxies = [None]
         if threadname:
             self.name =  threadname
 
@@ -70,17 +72,18 @@ class getterThread(threading.Thread):
         
         print "URL is %s - %s ID: %s" % (self.url, self.name, self.threadID)
 
-        while self.runcount < max_runs:
-            make_url_request(self.url)
-            time.sleep(sleeptime) 
-            if self.runcount <= 100:
-                sleeptime += .2
-            elif self.runcount > 100 and self.runcount < 10000:
-                sleeptime += .1
-            elif self.runcount >= 1000 and self.runcount < 5000:
-                sleeptime +=.05
-            elif self.runcount >= 5000:
-                sleeptime +=.025
+		for self.runcount in xrange(0, max_runs / len(self.proxies)):
+			for proxy in self.proxies:
+				make_url_request(self.url, proxy)
+				time.sleep(sleeptime) 
+				if self.runcount <= 100:
+					sleeptime += .2
+				elif self.runcount > 100 and self.runcount < 10000:
+					sleeptime += .1
+				elif self.runcount >= 1000 and self.runcount < 5000:
+					sleeptime +=.05
+				elif self.runcount >= 5000:
+					sleeptime +=.025
             
         print "Exiting " + self.name + " ID: " + str(self.threadID)
 
@@ -95,7 +98,7 @@ def create_threadlist():
     for url in url_list:
         threadname = "Getter Thread"
         print "Initializing %s, ID: %d" % (threadname, i)
-        newthread = getterThread(i, url, threadname)
+        newthread = getterThread(i, url, threadname, proxy_list)
         threadlist.append(newthread)
         i+=1
     return threadlist
